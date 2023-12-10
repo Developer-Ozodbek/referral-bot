@@ -263,7 +263,7 @@ async function handleReferralLinkMessage(userId, callbackQuery) {
       },
     });
 
-    if (callbackQuery?.message?.message_id) {
+    if (callbackQuery && callbackQuery.message && callbackQuery.message.message_id) {
       await bot.deleteMessage(userId, callbackQuery.message.message_id);
     }
 
