@@ -1,15 +1,13 @@
+require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
-const token = "6494362947:AAHcxSDY7GPSgeIOCSttjiX6Q2II5evMSHo"; // Replace with your actual bot token obtained from BotFather
+const token = process.env.BOT_TOKEN; // Replace with your actual bot token obtained from BotFather
 const bot = new TelegramBot(token, { polling: true });
 const mongoose = require("mongoose");
 
-mongoose.connect(
-  "mongodb+srv://ozodbek:ozodbek@cluster0.zxeu8tk.mongodb.net/?retryWrites=true&w=majority",
-  {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  }
-);
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
 const User = mongoose.model("User", {
   telegramId: Number,
@@ -19,6 +17,7 @@ const User = mongoose.model("User", {
   canUserGetCourses: Boolean,
 });
 
+const botUsername = "https://t.me/skillswapacademy_bot";
 const channels = ["refone_skill", "onetoskill", "refthree"];
 const userShouldRefer = 2;
 let referrer;
@@ -32,18 +31,6 @@ bot.onText(/\/start$/, async (msg) => {
     const existingUser = await User.findOne({ telegramId: userId });
 
     if (!existingUser) {
-      const isUserSubscribed = await userSubscribedChannelsOrNot(userId); // Await the function call
-      // New user
-      const newUser = new User({
-        telegramId: userId,
-        channelsSubscribed: isUserSubscribed,
-        referrals: 0,
-        enterBotByReferral: false,
-        canUserGetCourses: false,
-      });
-
-      await newUser.save();
-
       start(userId, chatId, true);
     } else {
       start(userId, chatId, false);
@@ -63,20 +50,14 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
     const existingUser = await User.findOne({ telegramId: userId });
 
     if (!existingUser) {
-      const isUserSubscribed = await userSubscribedChannelsOrNot(userId); // Await the function call
       referrer = await User.findOne({ telegramId: referralParam });
-      if(referrer){
-        const newUser = new User({
-          telegramId: userId,
-          channelsSubscribed: isUserSubscribed,
-          referrals: 0,
-          enterBotByReferral: true,
-          canUserGetCourses: false,
-        });
-        await newUser.save();
+      if (referrer) {
         start(userId, chatId, true);
       } else {
-        bot.sendMessage(userId, "Afsuski, sizni taklif qilgan foydalanuvchi topilmadi :(\nIltimos sizni taklif qilgan foydalanuvchiga botga qayta kirishini so'rang.")
+        bot.sendMessage(
+          userId,
+          "Afsuski, sizni taklif qilgan foydalanuvchi topilmadi :(\nIltimos sizni taklif qilgan foydalanuvchiga botga qayta kirishini so'rang."
+        );
       }
     } else {
       start(userId, chatId, false);
@@ -95,7 +76,10 @@ bot.onText(/\/info/, async (msg) => {
 
     if (!user) {
       // User not found, handle accordingly
-      bot.sendMessage(userId, "Siz hali botga start bermadingiz, /info buyrug'ini berishdan oldin,\n/start buyrug'ini ishga soling");
+      bot.sendMessage(
+        userId,
+        "Siz hali botga start bermadingiz, /info buyrug'ini berishdan oldin,\n/start buyrug'ini ishga soling"
+      );
       return;
     }
 
@@ -132,13 +116,9 @@ async function start(userId, chatId, isUserNew) {
     userHaveToVerify(chatId);
   } else {
     if (await userSubscribedChannelsOrNot(userId)) {
-      if(user.enterBotByReferral){
-        // bot.sendMessage(userId, 'Referral link orqali botga kirganligingiz uchun quyidagi "Tekshirish" tugmasini bosing👇')
-        userHaveToVerify(chatId);
-      }
-      if(user.canUserGetCourses){
+      if (user.canUserGetCourses) {
         bot.sendMessage(userId, "Endi siz kurslarga ega bo'laolasiz!!");
-        return false
+        return false;
       }
       return handleReferralLinkMessage(userId);
     } else {
@@ -150,7 +130,6 @@ async function start(userId, chatId, isUserNew) {
 // Verifying user subscribed channels or not
 async function userHaveToVerify(chatId, userId) {
   try {
-
     const keyboard = {
       reply_markup: {
         inline_keyboard: [
@@ -182,10 +161,14 @@ bot.on("callback_query", async (callbackQuery) => {
 
     if (data === "verify") {
       if (await userSubscribedChannelsOrNot(userId)) {
-        await User.updateOne(
-          { telegramId: userId },
-          { channelsSubscribed: true }
-        );
+        const newUser = new User({
+          telegramId: userId,
+          channelsSubscribed: true,
+          referrals: 0,
+          enterBotByReferral: true,
+          canUserGetCourses: false,
+        });
+        await newUser.save();
 
         if (referrer) {
           referrer.referrals += 1;
@@ -203,7 +186,10 @@ bot.on("callback_query", async (callbackQuery) => {
               referrer.telegramId,
               `Tabriklaymiz!! siz ${userShouldRefer} ta referral yig'dingiz, endi darsliklarga ega bo'lishingiz mumkin!`
             );
-            await User.findOneAndUpdate({ telegramId: referrer.telegramId }, { canUserGetCourses: true });
+            await User.findOneAndUpdate(
+              { telegramId: referrer.telegramId },
+              { canUserGetCourses: true }
+            );
           }
         }
 
@@ -214,7 +200,10 @@ bot.on("callback_query", async (callbackQuery) => {
           { telegramId: userId },
           { channelsSubscribed: false }
         );
-        bot.sendMessage(userId, `Barcha ${channels.length} ta kanalga obuna bo'lishingiz shart!`);
+        bot.sendMessage(
+          userId,
+          `Barcha ${channels.length} ta kanalga obuna bo'lishingiz shart!`
+        );
       }
     }
   } catch (error) {
@@ -240,7 +229,7 @@ async function checkChannelMembership(userId, channel) {
 }
 
 async function handleReferralLinkMessage(userId, callbackQuery) {
-  const referralLink = `https://t.me/skillswapacademy_bot?start=${userId}`;
+  const referralLink = `${botUsername}?start=${userId}`;
   const referralMessage = `🔥 Eng so'ngi IELTS 9 So'hiblari va 6 yillik eng tajribali ustozlardan bepul FULL IELTS kursi\n\nQatnashishingizni tavsiya qilaman 👇\n\n[Bepul FULL IELTS kursi](${referralLink})`;
   const gifUrl = "https://media.giphy.com/media/8VrtCswiLDNnO/giphy.gif"; // Replace with your GIF URL
 
