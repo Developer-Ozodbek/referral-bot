@@ -1,14 +1,19 @@
+// Load environment variables
 require("dotenv").config();
+
+// Initialize Telegram bot and MongoDB connection
 const TelegramBot = require("node-telegram-bot-api");
 const token = process.env.BOT_TOKEN; // Replace with your actual bot token obtained from BotFather
 const bot = new TelegramBot(token, { polling: true });
 const mongoose = require("mongoose");
 
+// Connect to MongoDB using the provided URI
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
+// Define Mongoose User model
 const User = mongoose.model("User", {
   telegramId: Number,
   channelsSubscribed: Boolean,
@@ -17,6 +22,7 @@ const User = mongoose.model("User", {
   canUserGetCourses: Boolean,
 });
 
+// Bot username and channel list
 const botUsername = "https://t.me/skillswapacademy_bot";
 const channels = ["refone_skill", "onetoskill", "refthree"];
 const userShouldRefer = 2;
@@ -30,6 +36,7 @@ bot.onText(/\/start$/, async (msg) => {
   try {
     const existingUser = await User.findOne({ telegramId: userId });
 
+    // Call start function based on user existence
     if (!existingUser) {
       start(userId, chatId, true);
     } else {
@@ -113,23 +120,27 @@ async function start(userId, chatId, isUserNew) {
   const user = await User.findOne({ telegramId: userId });
 
   if (isUserNew) {
+    // Prompt the user to verify by subscribing to channels
     userHaveToVerify(chatId);
   } else {
     if (await userSubscribedChannelsOrNot(userId)) {
       if (user.canUserGetCourses) {
+        // Inform user about eligibility to access courses
         bot.sendMessage(userId, "Endi siz kurslarga ega bo'laolasiz!!");
         return false;
       }
       return handleReferralLinkMessage(userId);
     } else {
+      // User needs to verify subscription to channels
       userHaveToVerify(chatId);
     }
   }
 }
 
-// Verifying user subscribed channels or not
+// Function to verify if a user has subscribed to the required channels
 async function userHaveToVerify(chatId, userId) {
   try {
+     // Keyboard for channel subscription verification
     const keyboard = {
       reply_markup: {
         inline_keyboard: [
@@ -141,6 +152,7 @@ async function userHaveToVerify(chatId, userId) {
       },
     };
 
+    // Prompt users to subscribe to channels for verification
     await bot.sendMessage(
       chatId,
       "Iltimos, quyidagi kanallarga obuna bo'ling va Tekshirish tugmasini bosing:",
