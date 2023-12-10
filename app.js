@@ -16,6 +16,7 @@ const User = mongoose.model("User", {
   channelsSubscribed: Boolean,
   referrals: Number,
   enterBotByReferral: Boolean,
+  canUserGetCourses: Boolean,
 });
 
 const channels = ["refone_skill", "onetoskill", "refthree"];
@@ -38,6 +39,7 @@ bot.onText(/\/start$/, async (msg) => {
         channelsSubscribed: isUserSubscribed,
         referrals: 0,
         enterBotByReferral: false,
+        canUserGetCourses: false,
       });
 
       await newUser.save();
@@ -69,6 +71,7 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
           channelsSubscribed: isUserSubscribed,
           referrals: 0,
           enterBotByReferral: true,
+          canUserGetCourses: false,
         });
         await newUser.save();
         start(userId, chatId, true);
@@ -130,8 +133,11 @@ async function start(userId, chatId, isUserNew) {
   } else {
     if (await userSubscribedChannelsOrNot(userId)) {
       if(user.enterBotByReferral){
-        bot.sendMessage(userId, 'Referral link orqali botga kirganligingiz uchun quyidagi "Tekshirish" tugmasini bosing👇')
+        // bot.sendMessage(userId, 'Referral link orqali botga kirganligingiz uchun quyidagi "Tekshirish" tugmasini bosing👇')
         userHaveToVerify(chatId);
+      }
+      if(user.canUserGetCourses){
+        bot.sendMessage(userId, "Endi siz kurslarga ega bo'laolasiz!!");
         return false
       }
       return handleReferralLinkMessage(userId);
@@ -197,6 +203,7 @@ bot.on("callback_query", async (callbackQuery) => {
               referrer.telegramId,
               `Tabriklaymiz!! siz ${userShouldRefer} ta referral yig'dingiz, endi darsliklarga ega bo'lishingiz mumkin!`
             );
+            await User.findOneAndUpdate({ telegramId: referrer.telegramId }, { canUserGetCourses: true });
           }
         }
 
