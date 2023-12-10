@@ -2,3 +2,4 @@
 /bot.js
 /test.js
 /node_modules
+.env
