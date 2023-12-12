@@ -26,7 +26,8 @@ const User = mongoose.model("User", {
 const botUsername = "https://t.me/skillswapacademy_bot";
 const channels = ["refone_skill"];
 const userShouldRefer = 5;
-const privateChannelId = "-4012508413";
+// const privateChannelId = "-4012508413";
+const privateChannelId = "-1002078693286";
 let referrer;
 
 // Handler for '/start' command without parameters
@@ -332,10 +333,10 @@ async function userSubscribedChannelsOrNot(userId) {
 
 async function createInviteLink(channelId) {
   try {
-    const expireTime = Math.floor(Date.now() / 1000) + 60 * 60; // Expire in 1 hour (Unix time format)
+    // const expireTime = Math.floor(Date.now() / 1000) + 60 * 60; // Expire in 1 hour (Unix time format)
 
     const inviteLink = await bot.createChatInviteLink(channelId, {
-      expire_date: expireTime,
+      // expire_date: expireTime,
       member_limit: 1,
     });
 
