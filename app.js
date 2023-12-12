@@ -264,53 +264,6 @@ bot.on("callback_query", async (callbackQuery) => {
       }
     });
 
-    // if (data === "verify") {
-    //   if (await userSubscribedChannelsOrNot(userId)) {
-    //     const newUser = new User({
-    //       telegramId: userId,
-    //       channelsSubscribed: true,
-    //       referrals: 0,
-    //       enterBotByReferral: true,
-    //       canUserGetCourses: false,
-    //     });
-    //     await newUser.save();
-
-    //     if (referrer) {
-    //       referrer.referrals += 1;
-    //       await referrer.save();
-
-    //       // Notify the referrer about successful referral
-    //       await bot.sendMessage(
-    //         referrer.telegramId,
-    //         `+1 ta foydalanuvchi sizning referral havolangiz orqali botga qo'shildi! jami referrallar soningiz: ${referrer.referrals} ta`
-    //       );
-
-    //       // Notify referrer upon reaching 5 referrals
-    //       if (referrer.referrals == userShouldRefer) {
-    //         bot.sendMessage(
-    //           referrer.telegramId,
-    //           `Tabriklaymiz!! siz ${userShouldRefer} ta referral yig'dingiz, endi *kurslarga ega bo'lishingiz mumkin! Buning uchun* /start *buyrug'ini ishga soling!* `
-    //         );
-    //         await User.findOneAndUpdate(
-    //           { telegramId: referrer.telegramId },
-    //           { canUserGetCourses: true }
-    //         );
-    //       }
-    //     }
-
-    //     // Update 'channelsSubscribed' to true upon successful subscription
-    //     return handleReferralLinkMessage(userId, callbackQuery);
-    //   } else {
-    //     await User.updateOne(
-    //       { telegramId: userId },
-    //       { channelsSubscribed: false }
-    //     );
-    //     bot.sendMessage(
-    //       userId,
-    //       `Barcha ${channels.length} ta kanalga obuna bo'lishingiz shart!`
-    //     );
-    //   }
-    // }
   } catch (error) {
     console.error(`Error occurred at line 141: ${error}`);
   }
@@ -393,7 +346,7 @@ async function createInviteLink(channelId) {
   }
 }
 
-async function withLoading(userId, func, messageText = "Yuklanmoqda...") {
+async function withLoading(userId, func, messageText = "Iltimos biroz kuting...") {
   const loadingMessage = await bot.sendMessage(userId, messageText); // Send loading message
 
   try {
