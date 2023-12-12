@@ -164,7 +164,7 @@ async function start(userId, chatId, isUserNew) {
           { canUserGetCourses: false }
         );
       } else {
-        if (user.channelsSubscribed && user.referrals) {
+        if (user.channelsSubscribed && user.referrals >= userShouldRefer) {
           bot.sendMessage(
             userId,
             "*Siz allaqachon bir martalik havoladan foydalanib bo'lgan ko'rinasiz*",
