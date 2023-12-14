@@ -5,7 +5,11 @@ require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const token = process.env.BOT_TOKEN; // Replace with your actual bot token obtained from BotFather
 const bot = new TelegramBot(token, { polling: true });
+const express = require("express");
 const mongoose = require("mongoose");
+
+// Initialize your Express app
+const app = express();
 
 // Connect to MongoDB using the provided URI
 mongoose.connect(process.env.MONGODB_URI, {
@@ -359,3 +363,16 @@ async function withLoading(userId, func, messageText = "Iltimos biroz kuting..."
     await bot.deleteMessage(userId, loadingMessage.message_id);
   }
 }
+
+
+
+// Set a route for testing purposes
+app.get("/", (req, res) => {
+  res.send("Server is running.");
+});
+
+// Set the server to listen on a specific port
+const PORT = process.env.PORT || 3000; // Use the provided port or default to 3000
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
