@@ -181,7 +181,7 @@ async function start(userId, chatId, isUserNew) {
           );
           return false;
         }
-        return handleReferralLinkMessage(userId);
+        return handleReferralLinkMessage(userId, undefined);
       }
 
       return false;
@@ -329,6 +329,8 @@ async function handleReferralLinkMessage(userId, callbackQuery) {
       callbackQuery.message.message_id
     ) {
       await bot.deleteMessage(userId, callbackQuery.message.message_id);
+    } else {
+      console.log("Message to delete not found or already deleted.");
     }
 
     await bot.sendMessage(userId, detailForMessage, { parse_mode: "Markdown" });
