@@ -28,10 +28,11 @@ const User = mongoose.model("User", {
 
 // Bot username and channel list
 const botUsername = "https://t.me/skillswapacademy_bot";
-const channels = ["refone_skill"];
+const channels = ["SkillSwapAcademy"];
 const userShouldRefer = 5;
 // const privateChannelId = "-4012508413";
-const privateChannelId = "-1002078693286";
+const privateChannelId = "-1002117474725";
+let enterBotByReferral;
 let referrer;
 
 // Handler for '/start' command without parameters
@@ -41,6 +42,7 @@ bot.onText(/\/start$/, async (msg) => {
 
   try {
     const existingUser = await User.findOne({ telegramId: userId });
+    enterBotByReferral = false
 
     await withLoading(userId, async () => {
       // Call start function based on user existence
@@ -63,10 +65,12 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
 
   try {
     const existingUser = await User.findOne({ telegramId: userId });
+    enterBotByReferral = true
 
     await withLoading(userId, async () => {
       if (!existingUser) {
         referrer = await User.findOne({ telegramId: referralParam });
+        console.log(referrer)
         if (referrer) {
           start(userId, chatId, true);
         } else {
@@ -104,7 +108,7 @@ bot.onText(/\/info/, async (msg) => {
       const userDidRefferalInfo =
         user.referrals >= userShouldRefer ? "✅" : "❌";
 
-      const requirements = `Siz Darsliklarni olishingiz uchun quyidagilarni bajarishingiz kerak xolos: \n1. ${channels.length}ta kanal(lar)ga obuna bo'lishingiz kerak. \n2. Kamida 5 ta do'stingizni botga taklif qilishingiz kerak va toki ular ham ${channels.length} ta kanal(lar)ga obuna bo'lmagunicha, sizga referral qo'shilmaydi`;
+      const requirements = `Siz Darsliklarni olishingiz uchun quyidagilarni bajarishingiz kerak xolos: \n1. ${channels.length}ta kanal(lar)ga obuna bo'lishingiz kerak. \n2. Kamida ${userShouldRefer} ta do'stingizni botga taklif qilishingiz kerak va toki ular ham ${channels.length} ta kanal(lar)ga obuna bo'lmagunicha, sizga referral qo'shilmaydi`;
 
       const referralInfo = user.referrals
         ? `${userDidRefferalInfo}Siz foydalanuvchilarni botga taklif qilganlar soningiz: ${user.referrals} ta.`
@@ -121,7 +125,8 @@ bot.onText(/\/info/, async (msg) => {
         : "Siz ushbu botga o'zingiz qo'shildingiz!\n(xech qanday referral havolalarsiz)";
 
       const userGotPrivateChannelLink =
-        user.channelsSubscribed && user.referrals ? true : false;
+        user.channelsSubscribed && user.referrals >= userShouldRefer ? true : false;
+      console.log(userGotPrivateChannelLink, 129);
       const message = `ℹ️ *UMUMIY MA'LUMOTLAR*:\nSiz bajarishingiz kerak bo'lgan *SHARTLAR*:\n${requirements}\n ➖➖➖➖➖➖➖➖➖➖➖➖ \nSiz haqingizda *MA'LUMOTLAR*:\n${referralInfo}\n${subscriptionInfo}\n${
         userGotPrivateChannelLink
           ? "✅Siz barcha shartlarni bajardingiz! Siz allaqachon bir marotabalik havolani olgan bo'lishingiz kerak!!"
@@ -218,6 +223,8 @@ bot.on("callback_query", async (callbackQuery) => {
   try {
     const userId = callbackQuery.from.id;
     const data = callbackQuery.data;
+    // Get the user's first name and last name (if available)
+    const firstName = callbackQuery.from.first_name
 
     await withLoading(userId, async () => {
       if (data === "verify") {
@@ -226,7 +233,7 @@ bot.on("callback_query", async (callbackQuery) => {
             telegramId: userId,
             channelsSubscribed: true,
             referrals: 0,
-            enterBotByReferral: true,
+            enterBotByReferral,
             canUserGetCourses: false,
           });
           await newUser.save();
@@ -238,14 +245,17 @@ bot.on("callback_query", async (callbackQuery) => {
             // Notify the referrer about successful referral
             await bot.sendMessage(
               referrer.telegramId,
-              `+1 ta foydalanuvchi sizning referral havolangiz orqali botga qo'shildi! jami referrallar soningiz: ${referrer.referrals} ta`
+              `+1 ta *${firstName}* ismli foydalanuvchi sizning referral havolangiz orqali botga qo'shildi! jami referrallar soningiz: ${referrer.referrals} ta`,
+              {parse_mode: 'Markdown'}
             );
 
             // Notify referrer upon reaching 5 referrals
+            console.log(referrer.referrals == userShouldRefer, 253)
             if (referrer.referrals == userShouldRefer) {
               bot.sendMessage(
                 referrer.telegramId,
-                `Tabriklaymiz!! siz ${userShouldRefer} ta referral yig'dingiz, endi *kurslarga ega bo'lishingiz mumkin! Buning uchun* /start *buyrug'ini ishga soling!* `
+                `Tabriklaymiz!! siz ${userShouldRefer} ta referral yig'dingiz, endi *kurslarga ega bo'lishingiz mumkin! Buning uchun* /start *buyrug'ini ishga soling!* `,
+                { parse_mode: 'Markdown' }
               );
               await User.findOneAndUpdate(
                 { telegramId: referrer.telegramId },
@@ -261,10 +271,18 @@ bot.on("callback_query", async (callbackQuery) => {
             { telegramId: userId },
             { channelsSubscribed: false }
           );
-          bot.sendMessage(
-            userId,
-            `Barcha ${channels.length} ta kanalga obuna bo'lishingiz shart!`
-          );
+
+          // OLD WAY TO Notify the user about the condition for subscription
+          // bot.sendMessage(
+          //   userId,
+          //   `Barcha ${channels.length} ta kanalga obuna bo'lishingiz shart!`
+          // );
+
+          // NEW WAY TO Notify the user about the condition for subscription
+          bot.answerCallbackQuery(callbackQuery.id, {
+            text: `Barcha ${channels.length} ta kanalga obuna bo'lishingiz shart!`,
+            show_alert: true,  // Show a pop-up notification
+          });
         }
       }
     });
@@ -296,22 +314,13 @@ async function handleReferralLinkMessage(userId, callbackQuery) {
   const referralMessage = `*🔥 IELTS va boshqa pullik kurslar hammasi shuyerda va mutlaqo tekin💯\n\nQatnashishingizni tavsiya qilaman 👇*\n\n[Bepul FULL IELTS kursi](${referralLink})`;
   const gifUrl = "https://media.giphy.com/media/8VrtCswiLDNnO/giphy.gif"; // Replace with your GIF URL
 
-  const detailForMessage = `*🔝 Postni do'stlaringizga yuboring.*\n\n*5 ta do'stingiz sizning taklif havolingiz orqali bot'ga kirib kanallarga a'zo bo'lsa, bot sizga kurs uchun bir martalik havola beradi.*`;
+  const detailForMessage = `*🔝 Postni do'stlaringizga yuboring.*\n\n*${userShouldRefer} ta do'stingiz sizning taklif havolingiz orqali bot'ga kirib kanallarga a'zo bo'lsa, bot sizga kurs uchun bir martalik havola beradi.*`;
 
   try {
+
     await bot.sendDocument(userId, gifUrl, {
       caption: referralMessage,
-      parse_mode: "Markdown",
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: "Bepul FULL IELTS kursi",
-              url: `https://t.me/SkillSwapAcademy`,
-            },
-          ],
-        ],
-      },
+      parse_mode: "Markdown"
     });
 
     if (
@@ -351,7 +360,11 @@ async function createInviteLink(channelId) {
   }
 }
 
-async function withLoading(userId, func, messageText = "Iltimos biroz kuting...") {
+async function withLoading(
+  userId,
+  func,
+  messageText = "Iltimos biroz kuting..."
+) {
   const loadingMessage = await bot.sendMessage(userId, messageText); // Send loading message
 
   try {
